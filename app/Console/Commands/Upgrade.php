@@ -7,7 +7,7 @@ use Symfony\Component\Process\Process;
 
 class Upgrade extends Command
 {
-    protected const DEFAULT_URL = 'https://github.com/paymenter/paymenter/releases/%s/paymenter.tar.gz';
+    protected const DEFAULT_URL = 'https://github.com/mixheberg/paymenter/releases/%s/paymenter.tar.gz';
 
     /**
      * The name and signature of the console command.
