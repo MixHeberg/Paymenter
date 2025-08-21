@@ -167,7 +167,7 @@
                 SAS au capital de {{ config('settings.company_capital', '1,0 €') }} -
                 {{ config('settings.company_rcs') }} - Code APE
                 6311Z<br />
-                N°TVA {{ config('settings.company_tax_id') }} - SIREN : {{ config('settings.company_id') }}
+                {{ config('tax.tax_enabled') ? 'N°TVA ' . config('settings.company_tax_id') : 'TVA non applicable - article 293 B du Code général des impôts (CGI)' }} - SIREN : {{ config('settings.company_id') }}
             </p>
         </div>
     </div>
