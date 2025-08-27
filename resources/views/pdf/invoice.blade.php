@@ -62,6 +62,45 @@
         .invoice-info td {
             padding: 2px 0;
         }
+
+        .totals-section {
+            margin-top: 30px;
+            float: right;
+            width: 300px;
+        }
+
+        .totals-table {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .totals-table td {
+            padding: 8px 0;
+            border: none;
+        }
+
+        .totals-table .label {
+            text-align: left;
+            font-weight: normal;
+            color: #666;
+            text-transform: uppercase;
+            font-size: 0.875em;
+        }
+
+        .totals-table .amount {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .totals-table .total-row {
+            border-top: 2px solid #ddd;
+            font-size: 1.1em;
+        }
+
+        .totals-table .total-row .label {
+            font-weight: bold;
+            color: #000;
+        }
     </style>
 </head>
 
@@ -94,6 +133,7 @@
             </td>
             <td>
                 <strong>{{ strtoupper(__('invoices.bill_to')) }}</strong> <br />
+                {!! nl2br(e(config('settings.bill_to_text', config('settings.company_name')))) !!}
                 {{ config('settings.company_name') }} <br />
                 {{ config('settings.company_address') }} {{ config('settings.company_address2') }} <br />
                 {{ config('settings.company_zip') }} {{ config('settings.company_city') }} <br />
@@ -125,27 +165,58 @@
         </tbody>
     </table>
 
-    @if ($invoice->transactions->count() > 0)
-        <table style="margin-top: 80px;" class="invoice-items">
-            <thead>
-                <tr>
-                    <th>{{ __('invoices.transaction_id') }}</th>
-                    <th>{{ __('invoices.payment_date') }}</th>
-                    <th>{{ __('invoices.amount') }}</th>
-                    <th>{{ __('invoices.payment_method') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($invoice->transactions as $transaction)
-                    <tr>
-                        <td>{{ $transaction->transaction_id }}</td>
-                        <td>{{ $transaction->created_at->format('d/m/Y') }}</td>
-                        <td>{{ $transaction->formattedAmount }}</td>
-                        <td>{{ $transaction->gateway ? $transaction->gateway->name : '' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
+    <!-- Totals Section -->
+    <div class="totals-section">
+        @if ($invoice->formattedTotal->tax > 0)
+        <table class="totals-table">
+            <tr>
+                <td class="label">{{ __('invoices.subtotal') }}</td>
+                <td class="amount">{{ $invoice->formattedTotal->format($invoice->formattedTotal->price - $invoice->formattedTotal->tax) }}</td>
+            </tr>
+            <tr>
+                <td class="label">
+                    {{ \App\Classes\Settings::tax()->name }} ({{ \App\Classes\Settings::tax()->rate }}%)
+                </td>
+                <td class="amount">{{ $invoice->formattedTotal->formatted->tax }}</td>
+            </tr>
+            <tr class="total-row">
+                <td class="label">{{ __('invoices.total') }}</td>
+                <td class="amount">{{ $invoice->formattedTotal }}</td>
+            </tr>
         </table>
+        @else
+        <table class="totals-table">
+            <tr class="total-row">
+                <td class="label">{{ __('invoices.total') }}</td>
+                <td class="amount">{{ $invoice->formattedTotal }}</td>
+            </tr>
+        </table>
+        @endif
+    </div>
+
+    <div style="clear: both;"></div>
+
+    @if($invoice->transactions->count() > 0)
+    <table style="margin-top: 80px;" class="invoice-items">
+        <thead>
+            <tr>
+                <th>{{ __('invoices.transaction_id') }}</th>
+                <th>{{ __('invoices.payment_date') }}</th>
+                <th>{{ __('invoices.amount') }}</th>
+                <th>{{ __('invoices.payment_method') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($invoice->transactions as $transaction)
+            <tr>
+                <td>{{ $transaction->transaction_id }}</td>
+                <td>{{ $transaction->created_at->format('d/m/Y') }}</td>
+                <td>{{ $transaction->formattedAmount }}</td>
+                <td>{{ $transaction->gateway ? $transaction->gateway->name : '' }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
     @endif
     <div style="font-size: 14px; bottom: 0; position: absolute;">
         <div>

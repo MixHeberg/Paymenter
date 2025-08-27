@@ -8,12 +8,12 @@ use App\Observers\ServiceObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Contracts\Auditable;
 
 #[ObservedBy([ServiceObserver::class])]
-class Service extends Model
+class Service extends Model implements Auditable
 {
-    use HasFactory, HasProperties;
+    use \App\Models\Traits\Auditable, HasFactory, HasProperties;
 
     public const STATUS_PENDING = 'pending';
 
@@ -174,7 +174,8 @@ class Service extends Model
     public function upgradable(): Attribute
     {
         return Attribute::make(
-            get: fn () => ($this->productUpgrades()->count() > 0 || $this->product->upgradableConfigOptions()->count() > 0) && $this->status == 'active' && $this->upgrade->where('status', ServiceUpgrade::STATUS_PENDING)->count() == 0);
+            get: fn () => ($this->productUpgrades()->count() > 0 || $this->product->upgradableConfigOptions()->count() > 0) && $this->status == 'active' && $this->upgrade->where('status', ServiceUpgrade::STATUS_PENDING)->count() == 0
+        );
     }
 
     public function productUpgrades()

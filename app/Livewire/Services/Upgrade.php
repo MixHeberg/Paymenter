@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\ServiceUpgrade;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -203,8 +204,14 @@ class Upgrade extends Component
                 UpgradeJob::dispatch($this->service);
             }
 
+            if (!config('settings.credits_on_downgrade', true)) {
+                $this->notify('The upgrade has been completed.', 'success');
+
+                return $this->redirect(route('services.show', $this->service), true);
+            }
+
             // Check if user has credits in this currency
-            /** @var \App\Models\User */
+            /** @var User */
             $user = Auth::user();
             $credit = $user->credits()->where('currency_code', $price->currency->code)->first();
 
@@ -214,7 +221,7 @@ class Upgrade extends Component
             } else {
                 $user->credits()->create([
                     'currency_code' => $price->currency->code,
-                    'amount' => $price->price,
+                    'amount' => abs($price->price),
                 ]);
             }
 

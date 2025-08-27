@@ -2,13 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\ExtensionHelper;
 use App\Jobs\Server\SuspendJob;
 use App\Jobs\Server\TerminateJob;
 use App\Models\EmailLog;
+use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\ServiceUpgrade;
 use App\Models\Ticket;
+use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 class CronJob extends Command
@@ -32,6 +36,8 @@ class CronJob extends Command
      */
     public function handle()
     {
+        Config::set('audit.console', true);
+
         // Send invoices if due date is x days away
         $sendedInvoices = 0;
         Service::where('status', 'active')->where('expires_at', '<', now()->addDays((int) config('settings.cronjob_invoice', 7)))->get()->each(function ($service) use (&$sendedInvoices) {
@@ -72,7 +78,9 @@ class CronJob extends Command
                     'quantity' => $service->quantity,
                     'description' => $service->description,
                 ]);
-            } catch (\Exception $e) {
+
+                $this->payInvoiceWithCredits($invoice);
+            } catch (Exception $e) {
                 DB::rollBack();
                 $this->error('Error creating invoice for service ' . $service->id . ': ' . $e->getMessage());
 
@@ -156,5 +164,20 @@ class CronJob extends Command
         $this->info('Checking for updates...');
 
         $this->call(CheckForUpdates::class);
+    }
+
+    private function payInvoiceWithCredits(Invoice $invoice): void
+    {
+        if (!config('settings.credits_auto_use', true)) {
+            return;
+        }
+        $user = $invoice->user;
+        $credits = $user->credits()->where('currency_code', $invoice->currency_code)->first();
+        if ($credits && $credits->amount >= $invoice->remaining) {
+            $credits->amount -= $invoice->remaining;
+            $credits->save();
+
+            ExtensionHelper::addPayment($invoice->id, null, amount: $invoice->remaining);
+        }
     }
 }

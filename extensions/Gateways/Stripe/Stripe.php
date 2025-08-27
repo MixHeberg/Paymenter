@@ -8,6 +8,7 @@ use App\Events\ServiceCancellation\Created;
 use App\Helpers\ExtensionHelper;
 use App\Models\Gateway as ModelsGateway;
 use App\Models\Invoice;
+use App\Models\InvoiceTransaction;
 use App\Models\Service;
 use Carbon\Carbon;
 use Exception;
@@ -19,6 +20,8 @@ use Illuminate\Support\Facades\View;
 
 class Stripe extends Gateway
 {
+    private const API_VERSION = '2025-07-30.basil';
+
     public function boot()
     {
         require __DIR__ . '/routes.php';
@@ -92,6 +95,7 @@ class Stripe extends Gateway
                 'type' => 'checkbox',
                 'description' => 'Enable this option if you want to use subscriptions with Stripe (if available)',
                 'required' => false,
+                'database_type' => 'boolean',
             ],
         ];
     }
@@ -122,8 +126,9 @@ class Stripe extends Gateway
                 'subscription_schedule.canceled',
                 'invoice.created',
                 'invoice.payment_succeeded',
+                'charge.updated',
             ],
-            'api_version' => '2025-02-24.acacia', // Use the latest version
+            'api_version' => self::API_VERSION,
         ]);
 
         $gateway->settings()->updateOrCreate(['key' => 'stripe_webhook_secret'], ['value' => $webhook->secret]);
@@ -139,6 +144,7 @@ class Stripe extends Gateway
     {
         return Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->config('stripe_secret_key'),
+            'Stripe-Version' => self::API_VERSION,
         ])->asForm()->$method('https://api.stripe.com/v1' . $url, $data)->throw()->object();
     }
 
@@ -202,17 +208,24 @@ class Stripe extends Gateway
             case 'payment_intent.succeeded':
                 $paymentIntent = $event->data->object; // contains a StripePaymentIntent
                 if (!isset($paymentIntent->metadata->invoice_id)) {
-                    return response()->json(['error' => 'Invoice ID not found in payment intent metadata'], 400);
+                    break;
                 }
-                // Get fee from payment intent
+                ExtensionHelper::addPayment($paymentIntent->metadata->invoice_id, 'Stripe', $paymentIntent->amount / 100, null, $paymentIntent->id);
+                break;
+            case 'charge.updated':
+                $charge = $event->data->object; // contains a StripeCharge
+                $invoiceTransaction = InvoiceTransaction::where('transaction_id', $charge->payment_intent)->first();
+                if (!$invoiceTransaction) {
+                    break;
+                }
+                // Get fee from charge
                 $fee = 0;
-                if (isset($paymentIntent->charges->data[0]->balance_transaction)) {
-                    $balanceTransaction = Http::withHeaders([
-                        'Authorization' => 'Bearer ' . $this->config('stripe_secret_key'),
-                    ])->get('https://api.stripe.com/v1/balance_transactions/' . $paymentIntent->charges->data[0]->balance_transaction)->object();
+                if ($charge->balance_transaction) {
+                    $balanceTransaction = $this->request('get', '/balance_transactions/' . $charge->balance_transaction);
                     $fee = $balanceTransaction->fee / 100;
                 }
-                ExtensionHelper::addPayment($paymentIntent->metadata->invoice_id, 'Stripe', $paymentIntent->amount / 100, $fee ?? null, $paymentIntent->id);
+                ExtensionHelper::addPayment($invoiceTransaction->invoice_id, 'Stripe', $charge->amount / 100, $fee ?? null, $charge->payment_intent);
+
                 break;
             case 'setup_intent.succeeded':
                 $setupIntent = $event->data->object; // contains a StripeSetupIntent
@@ -227,9 +240,10 @@ class Stripe extends Gateway
                 break;
             case 'invoice.created':
                 $invoice = $event->data->object; // contains a StripeInvoice
+
                 // Check if its draft and does exist in our database
-                if ($invoice->status === 'draft') {
-                    $service = Service::where('subscription_id', $invoice->subscription)->first();
+                if ($invoice->status === 'draft' && $invoice->parent->type === 'subscription_details') {
+                    $service = Service::where('subscription_id', $invoice->parent->subscription_details->subscription)->first();
 
                     if ($service) {
                         $this->request('post', '/invoices/' . $invoice->id . '/finalize');
@@ -242,16 +256,21 @@ class Stripe extends Gateway
                 // Mark invoice as paid
                 $invoice = $event->data->object; // contains a StripeInvoice
 
-                $service = Service::where('subscription_id', $invoice->subscription)->first();
+                if ($invoice->parent->type !== 'subscription_details') {
+                    break;
+                }
+
+                $service = Service::where('subscription_id', $invoice->parent->subscription_details->subscription)->first();
                 if ($service) {
                     $invoiceModel = $service->invoiceItems->sortByDesc('created_at')->first()->invoice;
-                    $paymentIntent = $this->request('get', '/payment_intents/' . $invoice->payment_intent);
-                    $fee = 0;
-                    if (isset($paymentIntent->charges->data[0]->balance_transaction)) {
-                        $balanceTransaction = $this->request('get', '/balance_transactions/' . $paymentIntent->charges->data[0]->balance_transaction);
-                        $fee = $balanceTransaction->fee / 100;
+                    $paymentIntents = $this->request('get', '/invoice_payments', ['invoice' => $invoice->id]);
+                    $paymentIntent = collect($paymentIntents->data)->first();
+
+                    if ($paymentIntent->payment->type !== 'payment_intent') {
+                        break;
                     }
-                    ExtensionHelper::addPayment($invoiceModel->id, 'Stripe', $invoice->amount_paid / 100, $fee ?? null, $invoice->payment_intent);
+
+                    ExtensionHelper::addPayment($invoiceModel->id, 'Stripe', $invoice->amount_paid / 100, null, $paymentIntent->id);
                 }
                 break;
             default:

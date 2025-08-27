@@ -5,6 +5,7 @@ namespace App\Jobs\Server;
 use App\Helpers\ExtensionHelper;
 use App\Helpers\NotificationHelper;
 use App\Models\Service;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -14,6 +15,8 @@ use Illuminate\Queue\SerializesModels;
 class TerminateJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $timeout = 60;
 
     /**
      * Create a new job instance.
@@ -27,7 +30,7 @@ class TerminateJob implements ShouldQueue
     {
         try {
             $data = ExtensionHelper::terminateServer($this->service);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             if ($e->getMessage() == 'No server assigned to this product') {
                 return;
             }
