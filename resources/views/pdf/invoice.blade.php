@@ -105,17 +105,17 @@
 </head>
 
 <body>
-    @if(config('settings.logo'))
-    <div style="margin: 20px 0 70px 0;">
-        <img style="height: 30px" src="{{ public_path('storage/' . config('settings.logo')) }}"
-            alt="{{ config('app.name') }}">
-    </div>
+    @if (config('settings.logo'))
+        <div style="margin: 20px 0 70px 0;">
+            <img style="height: 30px" src="{{ public_path('storage/' . config('settings.logo')) }}"
+                alt="{{ config('app.name') }}">
+        </div>
     @endif
 
     <!-- Invoice status -->
     <div style="margin-bottom: 20px;font-size: 20px">
         <strong>{{ __('invoices.status') }}:</strong><span
-            style="@if($invoice->status == 'paid') color: green; @else color: orange; @endif">
+            style="@if ($invoice->status == 'paid') color: green; @else color: orange; @endif">
             {{ ucfirst($invoice->status) }}
         </span>
     </div>
@@ -125,16 +125,19 @@
             <td rowspan="2" style="font-size: 1em;vertical-align: top;">
                 <strong>{{ __('invoices.issued_to') }}</strong><br>
                 {{ $invoice->user->name }} <br />
-                @foreach($invoice->user->properties()->with('parent_property')->whereHas('parent_property', function
-                ($query) {
-                $query->where('show_on_invoice', true);
-                })->get() as $property)
-                {{ $property->value }} <br />
+                @foreach ($invoice->user->properties()->with('parent_property')->whereHas('parent_property', function ($query) {
+            $query->where('show_on_invoice', true);
+        })->get() as $property)
+                    {{ $property->value }} <br />
                 @endforeach
             </td>
             <td>
                 <strong>{{ strtoupper(__('invoices.bill_to')) }}</strong> <br />
                 {!! nl2br(e(config('settings.bill_to_text', config('settings.company_name')))) !!}
+                {{ config('settings.company_name') }} <br />
+                {{ config('settings.company_address') }} {{ config('settings.company_address2') }} <br />
+                {{ config('settings.company_zip') }} {{ config('settings.company_city') }} <br />
+                {{ config('settings.company_country') }} <br />
             </td>
         </tr>
     </table>
@@ -151,13 +154,13 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($invoice->items as $item)
-            <tr>
-                <td>{{ $item->description }}</td>
-                <td>{{ $item->quantity }}</td>
-                <td>{{ $item->formattedPrice }}</td>
-                <td>{{ $item->formattedTotal }}</td>
-            </tr>
+            @foreach ($invoice->items as $item)
+                <tr>
+                    <td>{{ $item->description }}</td>
+                    <td>{{ $item->quantity }}</td>
+                    <td>{{ $item->formattedPrice }}</td>
+                    <td>{{ $item->formattedTotal }}</td>
+                </tr>
             @endforeach
         </tbody>
     </table>
@@ -215,6 +218,30 @@
         </tbody>
     </table>
     @endif
+    <div style="font-size: 14px; bottom: 0; position: absolute;">
+        <div>
+            <p>Nos coordonnées bancaires</p>
+            <ul style="font-size: 14px;">
+                <li>{{ config('settings.company_bank_name') }}</li>
+                <li>{{ config('settings.company_bank_bic') }}</li>
+                <li>{{ config('settings.company_iban') }}</li>
+            </ul>
+        </div>
+        <div style='text-align: center; width: 100%; margin-left: auto; margin-right: auto; text-size: 12px;'>
+            <hr />
+            <p>
+                <strong>
+                    {{ config('settings.company_name') }} - {{ config('settings.company_address') }}
+                    {{ config('settings.company_zip') }}
+                    {{ config('settings.company_city') }}
+                </strong><br />
+                SAS au capital de {{ config('settings.company_capital', '1,0 €') }} -
+                {{ config('settings.company_rcs') }} - Code APE
+                6311Z<br />
+                {{ config('tax.tax_enabled') ? 'N°TVA ' . config('settings.company_tax_id') : 'TVA non applicable - article 293 B du Code général des impôts (CGI)' }} - SIREN : {{ config('settings.company_id') }}
+            </p>
+        </div>
+    </div>
 </body>
 
 </html>
