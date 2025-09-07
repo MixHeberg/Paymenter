@@ -61,7 +61,13 @@ class CategoryResource extends Resource
                     ->label('Parent Category')
                     // Disallow having same category as it's own parent
                     ->disableOptionWhen(fn (string $value, ?Category $record): bool => $record && (int) $value === $record->id),
-                FileUpload::make('image')->label('Image')->nullable()->acceptedFileTypes(['image/*'])->columnSpanFull(),
+                FileUpload::make('image')
+                    ->label('Image')
+                    ->nullable()
+                    ->visibility('public')
+                    ->disk('public')
+                    ->acceptedFileTypes(['image/*'])
+                    ->columnSpanFull(),
             ])->columns(2);
     }
 

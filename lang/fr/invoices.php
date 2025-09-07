@@ -19,7 +19,7 @@ return [
     'checking_payment' => 'Vérification du paiement',
     'invoice_date' => 'Date de facturation',
     'invoice_no' => 'N° de facture',
-    'tax_id' => 'N° de TVA',
+    'tax_id' => 'Numéro de TVA',
     'company_id' => 'SIREN de l\'entreprise',
     'item' => 'Articles',
     'quantity' => 'Quantité',
@@ -30,4 +30,5 @@ return [
     'payment_method' => 'Mode de paiement',
     'amount' => 'Montant',
     'date' => 'Date',
+    'due_date' => 'Due Date',
 ];

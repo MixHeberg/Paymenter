@@ -22,11 +22,38 @@ return [
     'cancellation_requested' => 'Avbestilling forespurt',
 
     'current_plan' => 'Gjeldende abonnement',
-    'new_plan' => 'Ny abonnement',
+    'new_plan' => 'Nytt abonnement',
     'change_plan' => 'Endre abonnement',
     'current_price' => 'Nåværende pris',
     'new_price' => 'Ny pris',
     'upgrade' => 'Oppgrader',
     'upgrade_summary' => 'Oppgrader sammendrag',
     'total_today' => 'Totalt i dag',
+    'upgrade_service' => 'Oppgrader Tjenesten',
+    'upgrade_choose_product' => 'Velg et produkt å oppgradere til',
+    'upgrade_choose_config' => 'Velg konfigurasjon for oppgraderingen',
+    'next_step' => 'Neste trinn',
+
+    'upgrade_pending' => 'Du kan ikke oppgradere mens det allerede er en oppgradering / nedgradert faktura åpen',
+
+    'outstanding_invoice' => 'Du har en utestående faktura.',
+    'view_and_pay' => 'Klikk her for å se og betale',
+
+    'statuses' => [
+        'pending' => 'Avventer',
+        'active' => 'Aktiv',
+        'cancelled' => 'Kansellert',
+        'suspended' => 'Suspendert',
+        'cancellation_pending' => 'Cancellation Pending',
+    ],
+    'billing_cycles' => [
+        'day' => 'dag|dager',
+        'week' => 'uke|uker',
+        'month' => 'måned|måneder',
+        'year' => 'år|år',
+    ],
+    'every_period' => 'Hver :period :unit',
+    'price_every_period' => ':price per :period :unit',
+    'price_one_time' => ':price en gang',
+    'expires_at' => 'Utløper den',
 ];

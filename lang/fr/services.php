@@ -21,9 +21,9 @@ return [
     'cancel_immediate_warning' => 'Lorsque vous appuyez sur le bouton ci-dessous, le service sera annulé immédiatement et vous ne pourrez plus l\'utiliser.',
     'cancellation_requested' => 'Annulation demandée',
 
-    'current_plan' => 'Abonnement actuel',
-    'new_plan' => 'Nouvel abonnement',
-    'change_plan' => 'Changer d\'abonnement',
+    'current_plan' => 'Offre actuelle',
+    'new_plan' => 'Nouvelle offre',
+    'change_plan' => 'Changer d\'offre',
     'current_price' => 'Prix actuel',
     'new_price' => 'Nouveau prix',
     'upgrade' => 'Mettre à niveau',
@@ -34,16 +34,17 @@ return [
     'upgrade_choose_config' => 'Choisissez une configuration pour la mise à niveau',
     'next_step' => 'Étape Suivante',
 
-    'upgrade_pending' => 'Vous ne pouvez pas mettre à niveau un service tant qu\'il reste une facture de mise à niveau impayé',
+    'upgrade_pending' => 'Vous ne pouvez pas mettre à niveau un service tant qu\'il reste une facture impayé',
 
     'outstanding_invoice' => 'Vous avez une facture impayée.',
-    'view_and_pay' => 'Cliquez ici pour voir et payer',
+    'view_and_pay' => 'Cliquez ici pour afficher et payer',
 
     'statuses' => [
         'pending' => 'En attente',
         'active' => 'Actif',
-        'cancelled' => 'Résilier',
-        'suspended' => 'Suspendu',
+        'cancelled' => 'Résiliée',
+        'suspended' => 'Suspendue',
+        'cancellation_pending' => 'Cancellation Pending',
     ],
     'billing_cycles' => [
         'day' => 'jour|jours',
@@ -53,4 +54,6 @@ return [
     ],
     'every_period' => 'Tout les :period :unit',
     'price_every_period' => ':price tout les :period :unit',
+    'price_one_time' => ':price one time',
+    'expires_at' => 'Expires at',
 ];

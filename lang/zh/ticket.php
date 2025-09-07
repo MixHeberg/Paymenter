@@ -9,6 +9,11 @@ return [
     'department' => '部門',
     'created_at' => '建立時間',
     'reply' => '回覆',
+    'attachments' => '附件',
+    'upload_attachments' => '上傳附件',
+    'or_drag_and_drop' => '或拖放',
+    'files_max' => '文件最大可上傳10MB',
+    'selected_files' => '選擇檔案',
 
     'create_ticket' => '建立工單',
     'select_department' => '選擇部門',
