@@ -36,6 +36,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Livewire\Component;
 
 class ProductResource extends Resource
 {
@@ -128,13 +129,19 @@ class ProductResource extends Resource
                                             ->action(fn () => Cache::set('product_config', null, 0))
                                             ->hidden(fn (Get $get) => $get('server_id') === null)
                                     )
-                                    ->live(),
+                                    ->live()
+                                    ->afterStateUpdated(fn (Select $component) => $component
+                                        ->getContainer()
+                                        ->getComponent('extension_settings')
+                                        ->getChildSchema()
+                                        ->fill()),
 
                                 Grid::make()
                                     ->hidden(fn (Get $get) => $get('server_id') === null)
                                     ->columns(2)
+                                    ->key('extension_settings')
                                     ->schema(
-                                        function (Get $get) {
+                                        function (Get $get, Component $livewire) {
                                             $server = $get('server_id');
                                             if ($server == null) {
                                                 return [];
@@ -142,7 +149,7 @@ class ProductResource extends Resource
                                             $settings = [];
 
                                             try {
-                                                foreach (ExtensionHelper::getProductConfig(Server::findOrFail($server), $get('settings')) as $setting) {
+                                                foreach (ExtensionHelper::getProductConfigOnce(Server::findOrFail($server), $get('settings')) as $setting) {
                                                     // Easier to use dot notation for settings
                                                     $setting['name'] = 'settings.' . $setting['name'];
                                                     $settings[] = FilamentInput::convert($setting);
