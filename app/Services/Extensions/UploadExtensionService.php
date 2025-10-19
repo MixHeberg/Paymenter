@@ -6,9 +6,10 @@ use App\Attributes\ExtensionMeta;
 use App\Classes\Extension\Extension;
 use App\Classes\Extension\Gateway;
 use App\Classes\Extension\Server;
+use App\Console\Commands\Extension\Upgrade;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
-use Symfony\Component\Process\Process;
 
 class UploadExtensionService
 {
@@ -37,41 +38,47 @@ class UploadExtensionService
 
         $this->unzip($filePath, $extractPath);
 
-        // Define if the folder path is correct or we need to traverse it (based on .php files)
-        $path = $this->validateExtensionPath($extractPath);
+        try {
+            // Define if the folder path is correct or we need to traverse it (based on .php files)
+            $path = $this->validateExtensionPath($extractPath);
 
-        // Find the php file extending either Extension, Server, or Gateway
-        $type = $this->getExtensionType($path);
+            // Find the php file extending either Extension, Server, or Gateway
+            $type = $this->getExtensionType($path);
 
-        // Move the files to the correct location
-        $destinationPath = base_path('extensions/' . ucfirst($type['type']) . 's/' . $type['class']);
-        $updating = false;
-        $oldVersion = null;
+            // Move the files to the correct location
+            $destinationPath = base_path('extensions/' . ucfirst($type['type']) . 's/' . $type['class']);
+            $updating = false;
+            $oldVersion = null;
 
-        // Check if destination directory exists, if so, remove it
-        if (is_dir($destinationPath)) {
-            $updating = true;
-            File::deleteDirectory($destinationPath);
-        }
+            // Check if destination directory exists, if so, remove it
+            if (is_dir($destinationPath)) {
+                $updating = true;
+            }
 
-        if ($updating) {
-            // Read the extension class for current version
-            $extensionClass = 'Paymenter\\Extensions\\' . ucfirst($type['type']) . 's\\' . ucfirst($type['class']);
-            if (class_exists($extensionClass)) {
-                $reflection = new ReflectionClass($extensionClass);
-                $attributes = $reflection->getAttributes(ExtensionMeta::class);
+            if ($updating) {
+                // Read the extension class for current version
+                $extensionClass = 'Paymenter\\Extensions\\' . ucfirst($type['type']) . 's\\' . ucfirst($type['class']);
+                if (class_exists($extensionClass)) {
+                    $reflection = new ReflectionClass($extensionClass);
+                    $attributes = $reflection->getAttributes(ExtensionMeta::class);
 
-                if (count($attributes) > 0) {
-                    $extensionMeta = $attributes[0]->newInstance();
-                    if ($extensionMeta->version) {
-                        $oldVersion = $extensionMeta->version;
+                    if (count($attributes) > 0) {
+                        $extensionMeta = $attributes[0]->newInstance();
+                        if ($extensionMeta->version) {
+                            $oldVersion = $extensionMeta->version;
+                        }
                     }
                 }
+                File::deleteDirectory($destinationPath);
             }
-        }
 
-        if (!rename($path, $destinationPath)) {
-            throw new \Exception('Failed to move the extension files to the destination.');
+            if (!rename($path, $destinationPath)) {
+                throw new \Exception('Failed to move the extension files to the destination.');
+            }
+        } catch (\Exception $e) {
+            // Clean up the extracted files in case of an error
+            File::deleteDirectory($extractPath);
+            throw $e; // Re-throw the exception after cleanup
         }
 
         // Remove the extracted files
@@ -79,8 +86,11 @@ class UploadExtensionService
 
         // Execute the upgraded method if it exists
         if ($updating) {
-            Process::fromShellCommandline('php artisan app:extension:upgrade ' . $type['type'] . ' ' . $type['class'] . ' ' . ($oldVersion ?? ''))
-                ->run(function ($type, $output) {});
+            Artisan::call(Upgrade::class, [
+                'type' => $type['type'],
+                'name' => $type['class'],
+                'oldVersion' => $oldVersion,
+            ]);
         }
 
         return $type['type'];
@@ -99,7 +109,7 @@ class UploadExtensionService
                     require_once $file; // Include the file to load the class
                 }
                 $namespace = $matches[1];
-                if (preg_match('/class\s+(\w+)/', $content, $classMatches)) {
+                if (preg_match('/^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:extends|implements|\{)/m', $content, $classMatches)) {
                     $className = $classMatches[1];
                     $fullClassName = $namespace . '\\' . $className;
 
@@ -111,6 +121,9 @@ class UploadExtensionService
                         $type['type'] = 'gateway';
                     } elseif (is_subclass_of($fullClassName, Extension::class)) {
                         $type['type'] = 'other';
+                    }
+                    if ($type['class'] && $type['type']) {
+                        break; // Exit the loop if we found a valid class
                     }
                 }
             }
