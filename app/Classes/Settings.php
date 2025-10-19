@@ -189,6 +189,87 @@ class Settings
                     'required' => false,
                 ],
             ],
+            'company-details' => [
+                [
+                    'name' => 'company_name',
+                    'label' => 'Company Name',
+                    'type' => 'text',
+                    'override' => 'app.name',
+                    'default' => 'Paymenter',
+                ],
+                [
+                    'name' => 'company_email',
+                    'label' => 'Company Email',
+                    'type' => 'email',
+                ],
+                [
+                    'name' => 'company_phone',
+                    'label' => 'Company Phone',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_address',
+                    'label' => 'Company Address',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_address2',
+                    'label' => 'Company Address 2',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_city',
+                    'label' => 'Company City',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_zip',
+                    'label' => 'Company Zip',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_country',
+                    'label' => 'Company Country',
+                    'type' => 'select',
+                    'options' => array_merge(['' => 'None'], config('app.countries')),
+                ],
+                [
+                    'name' => 'company_tax_id',
+                    'label' => 'Company Tax ID',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_id',
+                    'label' => 'Company ID',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_bank_name',
+                    'label' => 'Bank Name',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_bank_bic',
+                    'label' => 'Bank BIC',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_iban',
+                    'label' => 'Company IBAN',
+                    'type' => 'text',
+                ],
+                [
+                    'name' => 'company_capital',
+                    'label' => 'Capital of the Company',
+                    'type' => 'text',
+                    'default' => '1,0 €',
+                ],
+                [
+                    'name' => 'company_rcs',
+                    'label' => 'RCS',
+                    'type' => 'text',
+                ],
+            ],
             'tax' => [
                 [
                     'name' => 'tax_enabled',

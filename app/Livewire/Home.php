@@ -16,6 +16,7 @@ class Home extends Component
                 });
             })->orderBy('sort')->get(),
             'title' => 'Home',
+            'footer' => true,
         ]);
     }
 }

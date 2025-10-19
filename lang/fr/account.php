@@ -48,5 +48,4 @@ return [
     'no_credit' => 'Vous n\'avez aucun crédit.',
     'add_credit' => 'Ajouter des crédits',
     'credit_deposit' => 'Déposer des crédits (:currency)',
-
 ];
