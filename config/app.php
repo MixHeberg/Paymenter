@@ -97,6 +97,7 @@ return [
         'es' => 'Spanish',
         'fi' => 'Finnish',
         'fr' => 'French',
+        'id' => 'Indonesian',
         'it' => 'Italian',
         'sv' => 'Swedish',
         'uk' => 'Ukrainian',
@@ -156,6 +157,7 @@ return [
     'aliases' => Facade::defaultAliases()->merge([
         'Redis' => Illuminate\Support\Facades\Redis::class,
         'Cart' => App\Classes\Cart::class,
+        'ExtensionHelper' => App\Helpers\ExtensionHelper::class,
     ])->toArray(),
 
     'countries' => [

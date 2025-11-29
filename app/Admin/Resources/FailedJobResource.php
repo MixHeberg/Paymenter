@@ -81,6 +81,7 @@ class FailedJobResource extends Resource
                             try {
                                 Artisan::call("queue:retry {$record->uuid}");
                             } catch (Exception $e) {
+                                report($e);
                                 Notification::make()
                                     ->title($e->getMessage())
                                     ->warning()
@@ -108,10 +109,7 @@ class FailedJobResource extends Resource
                     })
                     ->deselectRecordsAfterCompletion(),
             ])
-            ->defaultSort('failed_at', 'desc')
-            ->filters([
-
-            ]);
+            ->defaultSort('failed_at', 'desc');
     }
 
     public static function canCreate(): bool

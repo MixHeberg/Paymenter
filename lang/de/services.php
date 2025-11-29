@@ -44,7 +44,7 @@ return [
         'active' => 'Aktiv',
         'cancelled' => 'Abgebrochen',
         'suspended' => 'Ausgesetzt',
-        'cancellation_pending' => 'Cancellation Pending',
+        'cancellation_pending' => 'Stornierung ausstehend',
     ],
     'billing_cycles' => [
         'day' => 'Tag|Tage',
@@ -54,6 +54,16 @@ return [
     ],
     'every_period' => 'Jede :period :unit',
     'price_every_period' => ':price je :period :unit',
-    'price_one_time' => ':price one time',
+    'price_one_time' => ':price einmal',
     'expires_at' => 'Gültig bis',
+    'auto_pay' => 'Automatische Zahlung mit',
+    'auto_pay_not_configured' => 'Nicht konfiguriert',
+
+    'no_services' => 'Keine Services gefunden',
+    'update_billing_agreement' => 'Vereinbarung aktualisieren',
+    'clear_billing_agreement' => 'Zahlungsvereinbarung entfernen',
+    'select_billing_agreement' => 'Zahlungsvereinbarung entfernen',
+
+    'remove_payment_method' => 'Zahlungsmethode entfernen',
+    'remove_payment_method_confirm' => 'Möchtest du die Zahlungsmethode „:name“ wirklich aus diesem Dienst entfernen? Der Dienst kann dann seine Rechnungen nicht mehr automatisch bezahlen.',
 ];

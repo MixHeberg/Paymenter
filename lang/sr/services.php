@@ -44,7 +44,7 @@ return [
         'active' => 'Aktivno',
         'cancelled' => 'Otkazano',
         'suspended' => 'Suspendovano',
-        'cancellation_pending' => 'Cancellation Pending',
+        'cancellation_pending' => 'Otkazivanje na čekanju',
     ],
     'billing_cycles' => [
         'day' => 'dan|dana',
@@ -56,4 +56,14 @@ return [
     'price_every_period' => ':price po :period :unit',
     'price_one_time' => ':price jednokratno',
     'expires_at' => 'Ističe',
+    'auto_pay' => 'Automatsko plaćanje putem',
+    'auto_pay_not_configured' => 'Nije konfigurisano',
+
+    'no_services' => 'Nije pronađena nijedna usluga',
+    'update_billing_agreement' => 'Ažuriraj ugovor o naplati',
+    'clear_billing_agreement' => 'Ukloni ugovor o naplati',
+    'select_billing_agreement' => 'Izaberi ugovor o naplati',
+
+    'remove_payment_method' => 'Ukloni način plaćanja',
+    'remove_payment_method_confirm' => 'Da li ste sigurni da želite da uklonite način plaćanja ":name" sa ove usluge? Vaša usluga više neće moći da automatski plaća svoje račune.',
 ];

@@ -3,11 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Helpers\ExtensionHelper;
+use App\Helpers\NotificationHelper;
 use App\Jobs\Server\SuspendJob;
 use App\Jobs\Server\TerminateJob;
 use App\Models\CronStat;
-use App\Models\EmailLog;
 use App\Models\Invoice;
+use App\Models\Notification;
 use App\Models\Service;
 use App\Models\ServiceUpgrade;
 use App\Models\Setting;
@@ -33,6 +34,8 @@ class CronJob extends Command
      */
     protected $description = 'Run automated tasks';
 
+    private int $successFullCharges = 0;
+
     /**
      * Execute the console command.
      */
@@ -57,8 +60,7 @@ class CronJob extends Command
                         $iteration = $service->invoices()->count() + 1;
                         if ($iteration == $service->coupon->recurring) {
                             // Calculate the price
-                            $price = $service->plan->prices()->where('currency_code', $service->currency_code)->first()->price;
-                            $service->price = $price;
+                            $service->price = $service->calculatePrice();
                             $service->save();
                         }
                     }
@@ -89,7 +91,27 @@ class CronJob extends Command
                         'description' => $service->description,
                     ]);
 
-                    $this->payInvoiceWithCredits($invoice->refresh());
+                    $invoice = $invoice->refresh();
+
+                    $this->payInvoiceWithCredits($invoice);
+
+                    // Charge billing agreements
+                    if ($service->billing_agreement_id && $invoice->fresh()->status === 'pending') {
+                        DB::afterCommit(function () use ($invoice, $service) {
+                            try {
+                                ExtensionHelper::charge(
+                                    $service->billingAgreement->gateway,
+                                    $invoice,
+                                    $service->billingAgreement
+                                );
+
+                                $this->successFullCharges++;
+                            } catch (Exception $e) {
+                                // Ignore errors here
+                                NotificationHelper::invoicePaymentFailedNotification($invoice->user, $invoice);
+                            }
+                        });
+                    }
 
                     $number++;
                 });
@@ -106,12 +128,14 @@ class CronJob extends Command
 
                     $service->update(['status' => 'cancelled']);
 
-                    if ($service->product->stock) {
+                    if ($service->product->stock !== null) {
                         $service->product->increment('stock', $service->quantity);
                     }
 
                     $number++;
                 });
+
+                return $number;
             });
 
             $this->runCronJob('upgrade_invoices_updated', function ($number = 0) {
@@ -119,7 +143,10 @@ class CronJob extends Command
                 ServiceUpgrade::where('status', 'pending')->get()->each(function ($upgrade) use (&$number) {
                     if ($upgrade->service->expires_at < now()) {
                         $upgrade->update(['status' => 'cancelled']);
-                        $upgrade->invoice->update(['status' => 'cancelled']);
+                        // Somehow people manage to have an upgrade without an invoice
+                        if ($upgrade->invoice) {
+                            $upgrade->invoice->update(['status' => 'cancelled']);
+                        }
 
                         $number++;
 
@@ -152,16 +179,19 @@ class CronJob extends Command
                 // Terminate orders if due date is overdue for x days
                 Service::where('status', 'suspended')->where('expires_at', '<', now()->subDays((int) config('settings.cronjob_order_terminate', 14)))->each(function ($service) use (&$number) {
                     TerminateJob::dispatch($service);
+
                     $service->update(['status' => 'cancelled']);
                     // Cancel outstanding invoices
                     $service->invoices()->where('status', 'pending')->update(['status' => 'cancelled']);
 
-                    if ($service->product->stock) {
+                    if ($service->product->stock !== null) {
                         $service->product->increment('stock', $service->quantity);
                     }
 
                     $number++;
                 });
+
+                return $number;
             });
 
             $this->runCronJob('tickets_closed', function ($number = 0) {
@@ -178,15 +208,21 @@ class CronJob extends Command
             });
 
             $this->runCronJob('email_logs_deleted', function ($number = 0) {
-                $number = EmailLog::where('created_at', '<', now()->subDays((int) config('settings.cronjob_delete_email_logs', 90)))->count();
+                $number = Notification::where('created_at', '<', now()->subDays((int) config('settings.cronjob_delete_email_logs', 90)))->count();
                 // Delete email logs older then x
-                EmailLog::where('created_at', '<', now()->subDays((int) config('settings.cronjob_delete_email_logs', 90)))->delete();
+                Notification::where('created_at', '<', now()->subDays((int) config('settings.cronjob_delete_email_logs', 90)))->delete();
 
                 return $number;
             });
 
         } catch (Exception $e) {
             DB::rollBack();
+
+            NotificationHelper::sendSystemEmailNotification('Cron Job Error', <<<HTML
+                An error occurred while running the cron job:<br>
+                <pre>{$e->getMessage()}.</pre><br>
+                Please check the system and application logs for more details.
+                HTML);
 
             throw $e;
         }
@@ -197,6 +233,14 @@ class CronJob extends Command
             ['key' => 'last_cron_run', 'settingable_type' => CronStat::class],
             ['value' => now()->toDateTimeString(), 'type' => 'string']
         );
+
+        CronStat::create([
+            'key' => 'invoice_charged',
+            'value' => $this->successFullCharges,
+            'date' => now()->toDateString(),
+        ]);
+
+        $this->info('Successfully charged ' . $this->successFullCharges . ' invoices.');
 
         // Check for updates
         $this->info('Checking for updates...');
@@ -215,7 +259,7 @@ class CronJob extends Command
             $credits->amount -= $invoice->remaining;
             $credits->save();
 
-            ExtensionHelper::addPayment($invoice->id, null, amount: $invoice->remaining);
+            ExtensionHelper::addPayment($invoice->id, null, amount: $invoice->remaining, isCreditTransaction: true);
         }
     }
 

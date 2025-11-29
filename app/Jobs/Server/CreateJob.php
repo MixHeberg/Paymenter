@@ -16,7 +16,9 @@ class CreateJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 60;
+    public $timeout = 120;
+
+    public $tries = 1;
 
     /**
      * Create a new job instance.
@@ -28,16 +30,17 @@ class CreateJob implements ShouldQueue
      */
     public function handle(): void
     {
+        $data = [];
         // $data is the data that will be used to send the email, data is coming from the extension itself
         try {
             $data = ExtensionHelper::createServer($this->service);
         } catch (Exception $e) {
-            if ($e->getMessage() == 'No server assigned to this product') {
-                return;
+            if ($e->getMessage() !== 'No server assigned to this product') {
+                throw $e;
             }
         }
 
-        if ($this->sendNotification && isset($data)) {
+        if ($this->sendNotification) {
             NotificationHelper::serverCreatedNotification($this->service->user, $this->service, is_array($data) ? $data : []);
         }
     }

@@ -14,6 +14,10 @@ return [
     'or_drag_and_drop' => 'ili prevuci i otpusti',
     'files_max' => 'Fajlovi do 10MB',
     'selected_files' => 'Izabrani fajlovi',
+    'close_ticket' => 'Zatvori tiket',
+    'close_ticket_confirmation' => 'Da li ste sigurni da želite da zatvorite ovaj tiket? Ova radnja se ne može poništiti.',
+    'close_ticket_success' => 'Tiket je uspešno zatvoren.',
+    'close_ticket_already_closed' => 'Ovaj tiket je već zatvoren.',
 
     'create_ticket' => 'Kreiraj tiket',
     'select_department' => 'Izaberi odeljenje',
@@ -27,4 +31,5 @@ return [
     'service' => 'Usluga',
     'select_service' => 'Izaberi uslugu',
     'create' => 'Kreiraj',
+    'no_tickets' => 'Nije pronađen nijedan tiket',
 ];

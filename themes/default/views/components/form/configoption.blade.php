@@ -38,7 +38,7 @@
                 }
             }" class="flex flex-col gap-1 relative">
                 <label for="{{ $name }}"
-                    class="text-sm text-primary-100 w-fit start-1 ml-2 bg-background-secondary rounded-md px-2">
+                    class="mb-1 text-sm text-primary-100">
                     {{ $config->label ?? $config->name }}
                 </label>
                 <div class="relative flex items-center" :style="`--progress:${progressOption};--segments-width:${segmentsWidthOption}`" wire:ignore>
@@ -89,13 +89,12 @@
         @break
 
         @case('checkbox')
-            <x-form.checkbox name="{{ $name }}" type="checkbox" :label="__($config->label ?? $config->name)"
-                :required="$config->required ?? false" :checked="config('configs.' . $config->name) ? true : false" wire:model.live="{{ $name }}" />
+            <x-form.checkbox name="{{ $name }}" type="checkbox" :label="__($config->label ?? $config->name) . (($showPriceTag && $config->children->first()->price(billing_period: $plan->billing_period, billing_unit: $plan->billing_unit)->available) ? ' - ' . $config->children->first()->price(billing_period: $plan->billing_period, billing_unit: $plan->billing_unit) : '')"
+                :required="$config->required ?? false" wire:model.live="{{ $name }}" />
         @break
 
         @case('radio')
-            <x-form.radio name="{{ $name }}" :label="__($config->label ?? $config->name)"
-                :selected="config('configs.' . $config->name)" :required="$config->required ?? false" wire:model.live="{{ $name }}">
+            <x-form.radio name="{{ $name }}" :label="__($config->label ?? $config->name)" :required="$config->required ?? false" wire:model.live="{{ $name }}">
                 {{  $slot }}
             </x-form.radio>
         @break

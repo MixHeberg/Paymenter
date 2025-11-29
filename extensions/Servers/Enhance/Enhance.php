@@ -23,7 +23,11 @@ class Enhance extends Server
         ])->$method($req_url, $data);
 
         if (!$response->successful()) {
-            throw new Exception('An error occurred, got status code ' . $response->status() . ' on ' . $req_url);
+            $body = $response->body();
+            throw new Exception(
+                'An error occurred, got status code ' . $response->status() . ' on ' . $url .
+                ($body ? ' | Response: ' . $body : '')
+            );
         }
 
         return $response;
@@ -162,8 +166,10 @@ class Enhance extends Server
         }
         $user = $this->fetchUserOrg($service->user);
 
+        $settings = array_merge($settings, $properties);
+
         $response = $this->request('/orgs/' . $this->config('orgId') . '/customers/' . $user . '/subscriptions', 'post', [
-            'planId' => (int) ($properties['plan'] ?? $settings['plan']),
+            'planId' => (int) $settings['plan'],
         ])->json();
 
         if (isset($response['id'])) {
@@ -175,13 +181,33 @@ class Enhance extends Server
             ]);
         }
 
-        // Add domain
-        $this->request('/orgs/' . $user . '/websites', 'post', [
-            'domain' => $properties['domain'],
+        $data = [
+            'domain' => $settings['domain'],
             'subscriptionId' => $response['id'],
-        ]);
+        ];
+
+        // Allow serverGroupId (uuid)
+        if (isset($settings['location']) && !empty($settings['location'])) {
+            $data['serverGroupId'] = $this->findServerGroup($settings['location']);
+        }
+
+        // Add domain
+        $this->request('/orgs/' . $user . '/websites', 'post', $data);
 
         return true;
+    }
+
+    private function findServerGroup($serverGroupName)
+    {
+        $response = $this->request('/servers/groups', 'get')->json();
+
+        foreach ($response['items'] as $group) {
+            if ($group['name'] === $serverGroupName || $group['id'] === $serverGroupName) {
+                return $group['id'];
+            }
+        }
+
+        throw new Exception('Server group not found');
     }
 
     /**
@@ -282,6 +308,10 @@ class Enhance extends Server
 
     public function getActions(Service $service, $settings, $properties): array
     {
+        if (!$service->properties()->where('key', 'subscription_id')->exists()) {
+            throw new Exception('Missing subscription ID');
+        }
+
         return [
             [
                 'type' => 'button',

@@ -56,6 +56,19 @@ class Show extends Component
         $this->dispatch('saved');
     }
 
+    public function closeTicket()
+    {
+        $this->authorize('update', $this->ticket);
+        if (config('settings.ticket_client_closing_disabled', false)) {
+            abort(403, 'Closing tickets is disabled.');
+        }
+
+        $this->ticket->update(['status' => 'closed']);
+        $this->ticket->refresh();
+
+        $this->notify(__('ticket.close_ticket_success'));
+    }
+
     public function render()
     {
         return view('tickets.show')->layoutData([

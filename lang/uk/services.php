@@ -55,5 +55,15 @@ return [
     'every_period' => 'Every :period :unit',
     'price_every_period' => ':price per :period :unit',
     'price_one_time' => ':price one time',
-    'expires_at' => 'Expires at',
+    'expires_at' => 'Дійсний до',
+    'auto_pay' => 'Автоматична оплата за допомогою',
+    'auto_pay_not_configured' => 'Не налаштовано',
+
+    'no_services' => 'Послуги не знайдено',
+    'update_billing_agreement' => 'Оновити платіжну угоду',
+    'clear_billing_agreement' => 'Скасувати платіжну угоду',
+    'select_billing_agreement' => 'Виберіть платіжну угоду',
+
+    'remove_payment_method' => 'Видалити спосіб оплати',
+    'remove_payment_method_confirm' => 'Ви дійсно бажаєте видалити платіжний метод ":name" з цього сервісу? Ваша служба більше не зможе автоматично сплачувати рахунки-фактури.',
 ];

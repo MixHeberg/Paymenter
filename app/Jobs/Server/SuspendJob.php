@@ -16,7 +16,9 @@ class SuspendJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 60;
+    public $timeout = 120;
+
+    public $tries = 1;
 
     /**
      * Create a new job instance.
@@ -28,15 +30,17 @@ class SuspendJob implements ShouldQueue
      */
     public function handle(): void
     {
+        $data = [];
+
         try {
             $data = ExtensionHelper::suspendServer($this->service);
         } catch (Exception $e) {
-            if ($e->getMessage() == 'No server assigned to this product') {
-                return;
+            if ($e->getMessage() !== 'No server assigned to this product') {
+                throw $e;
             }
         }
 
-        if ($this->sendNotification && isset($data)) {
+        if ($this->sendNotification) {
             NotificationHelper::serverSuspendedNotification($this->service->user, $this->service, is_array($data) ? $data : []);
         }
     }

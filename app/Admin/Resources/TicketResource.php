@@ -8,6 +8,7 @@ use App\Admin\Resources\TicketResource\Pages\EditTicket;
 use App\Admin\Resources\TicketResource\Pages\ListTickets;
 use App\Admin\Resources\TicketResource\Widgets\TicketsOverView;
 use App\Models\Ticket;
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -18,6 +19,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
@@ -130,6 +132,9 @@ class TicketResource extends Resource
     {
         return $table
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
                 TextColumn::make('subject')
                     ->searchable()
                     ->sortable(),
@@ -152,14 +157,30 @@ class TicketResource extends Resource
                     })
                     ->formatStateUsing(fn (string $state) => ucfirst($state)),
                 TextColumn::make('department')
-                    ->formatStateUsing(fn ($state) => array_combine(config('settings.ticket_departments'), config('settings.ticket_departments'))[$state])
                     ->sortable(),
                 TextColumn::make('user.name')
                     ->searchable(['first_name', 'last_name'])
                     ->sortable(['first_name', 'last_name']),
             ])
             ->filters([
-                //
+                SelectFilter::make('user')
+                    ->label('User')
+                    ->relationship('user', 'id')
+                    ->indicateUsing(fn ($data) => $data['value'] ? 'User: ' . User::find($data['value'])->name : null)
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->name),
+                SelectFilter::make('priority')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                    ]),
+                SelectFilter::make('department')
+                    ->options(array_combine(config('settings.ticket_departments'), config('settings.ticket_departments')), config('settings.ticket_departments')),
+                SelectFilter::make('assigned_to')
+                    ->label('Assigned To')
+                    ->relationship('user', 'id', fn (Builder $query) => $query->where('role_id', '!=', null))
+                    ->indicateUsing(fn ($data) => $data['value'] ? 'Assigned to: ' . User::find($data['value'])->name : null)
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->name),
             ])
             ->recordActions([
                 EditAction::make(),

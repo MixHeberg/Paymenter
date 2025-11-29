@@ -58,7 +58,7 @@ Or, get additional help via [Community Discord](https://discord.gg/xB4UUT3XQg).
 
 The requirements for Paymenter are the following:
 
-- PHP (8.2 or higher).
+- PHP (8.3 or higher).
 - Composer
 - Webserver (Apache or Nginx)
 - Database (MariaDB)
@@ -81,9 +81,13 @@ Paymenter is available under the MIT license, offering you the freedom to adapt 
 Thanks to all sponsors for helping fund Paymenter's development. [Interested in becoming a sponsor?](https://github.com/sponsors/Paymenter)
 
 <a href="https://nodedog.consulting/?rel=paymenter">
-    <img src="https://github.com/user-attachments/assets/d31a9ac5-aca4-476b-a678-55cc694df1aa" width="300">
+  <img src="https://github.com/user-attachments/assets/d31a9ac5-aca4-476b-a678-55cc694df1aa" width="300">
 </a>
-
+<br />
+<br />
+<a href="https://www.quape.com/?rel=paymenter">
+  <img src="https://github.com/user-attachments/assets/57e10ba9-0615-44a6-8d96-ce1cce6048a6" width="300">
+</a>
 
 ## License
 

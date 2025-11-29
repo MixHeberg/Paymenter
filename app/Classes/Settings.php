@@ -12,6 +12,7 @@ use Exception;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
+use Minishlink\WebPush\VAPID;
 use Ramsey\Uuid\Uuid;
 
 class Settings
@@ -69,11 +70,37 @@ class Settings
                 ],
                 [
                     'name' => 'logo',
-                    'label' => 'Logo',
+                    'label' => 'Logo (Light Mode)',
                     'type' => 'file',
                     'required' => false,
                     'accept' => ['image/*'],
-                    'file_name' => 'logo.webp',
+                    'file_name' => 'logo-light.webp',
+                    'description' => 'Upload a logo to be displayed on light backgrounds.',
+                ],
+                [
+                    'name' => 'logo_dark',
+                    'label' => 'Logo (Dark Mode)',
+                    'type' => 'file',
+                    'required' => false,
+                    'accept' => ['image/*'],
+                    'file_name' => 'logo-dark.webp',
+                    'description' => 'Upload a logo to be displayed on dark backgrounds.',
+                ],
+                [
+                    'name' => 'favicon',
+                    'label' => 'Favicon',
+                    'type' => 'file',
+                    'required' => false,
+                    'accept' => ['image/x-icon', 'image/png', 'image/svg+xml'],
+                    'file_name' => 'favicon.ico',
+                    'description' => 'Upload a .ico, .png, or .svg file to be used as the browser icon.',
+                ],
+                [
+                    'name' => 'system_email_address',
+                    'label' => 'System Email Address',
+                    'type' => 'email',
+                    'required' => true,
+                    'description' => 'The email address used for system emails, such as CronJob failures, updates, etc.',
                 ],
                 [
                     'name' => 'tos',
@@ -296,6 +323,7 @@ class Settings
                     'label' => 'Disable Mail',
                     'type' => 'checkbox',
                     'database_type' => 'boolean',
+                    'live' => true,
                     'default' => true,
                 ],
                 [
@@ -309,28 +337,28 @@ class Settings
                     'name' => 'mail_host',
                     'label' => 'Mail Host',
                     'type' => 'text',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'override' => 'mail.mailers.smtp.host',
                 ],
                 [
                     'name' => 'mail_port',
                     'label' => 'Mail Port',
                     'type' => 'text',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'override' => 'mail.mailers.smtp.port',
                 ],
                 [
                     'name' => 'mail_username',
                     'label' => 'Mail Username',
                     'type' => 'text',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'override' => 'mail.mailers.smtp.username',
                 ],
                 [
                     'name' => 'mail_password',
                     'label' => 'Mail Password',
                     'type' => 'password',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'encrypted' => true,
                     'override' => 'mail.mailers.smtp.password',
                 ],
@@ -351,14 +379,14 @@ class Settings
                     'name' => 'mail_from_address',
                     'label' => 'Mail From Address',
                     'type' => 'email',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'override' => 'mail.from.address',
                 ],
                 [
                     'name' => 'mail_from_name',
                     'label' => 'Mail From Name',
                     'type' => 'text',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'override' => 'mail.from.name',
                 ],
 
@@ -367,7 +395,7 @@ class Settings
                     'name' => 'mail_header',
                     'label' => 'Header',
                     'type' => 'markdown',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'default' => '',
                     'disable_toolbar' => true,
                 ],
@@ -375,7 +403,7 @@ class Settings
                     'name' => 'mail_footer',
                     'label' => 'Footer',
                     'type' => 'markdown',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'default' => '',
                     'disable_toolbar' => true,
                 ],
@@ -383,7 +411,7 @@ class Settings
                     'name' => 'mail_css',
                     'label' => 'Mail CSS',
                     'type' => 'markdown',
-                    'required' => false,
+                    'required' => fn (Get $get) => !$get('mail_disable'),
                     'default' => '',
                     'disable_toolbar' => true,
                 ],
@@ -396,6 +424,13 @@ class Settings
                     'default' => ['Support', 'Sales'],
                     'required' => true,
                     'database_type' => 'array',
+                ],
+                [
+                    'name' => 'ticket_client_closing_disabled',
+                    'label' => 'Disallow clients from closing tickets',
+                    'type' => 'checkbox',
+                    'database_type' => 'boolean',
+                    'default' => false,
                 ],
                 // Email piping
                 [
@@ -580,7 +615,7 @@ class Settings
                     'name' => 'invoice_number_format',
                     'label' => 'Invoice number format',
                     'type' => 'text',
-                    'default' => '{number}',
+                    'default' => 'INV-{number}',
                     'required' => false,
                     'description' => 'Format to use for invoice numbers. Use {number} to insert the zero padded number and use {year}, {month} and {day} placeholders to insert the current date. Example: INV-{year}-{month}-{day}-{number} or INV-{year}{number}. It must at least contain {number}.',
                     'validation' => 'regex:/{number}/',
@@ -687,7 +722,6 @@ class Settings
                 ->first();
 
             return $taxRate ?: 0;
-
         });
     }
 
@@ -729,5 +763,29 @@ class Settings
         $minute = $time % 60;
 
         return compact('uuid', 'hour', 'minute');
+    }
+
+    public static function validateOrCreateVapidKeys(): bool
+    {
+        $publicKey = config('settings.vapid_public_key');
+        $privateKey = config('settings.vapid_private_key');
+        if ($publicKey && $privateKey && strlen($publicKey) > 80 && strlen($privateKey) > 40) {
+            return true;
+        }
+        try {
+            $vapid = VAPID::createVapidKeys();
+            Setting::updateOrCreate(
+                ['key' => 'vapid_public_key', 'encrypted' => true],
+                ['value' => $vapid['publicKey']]
+            );
+            Setting::updateOrCreate(
+                ['key' => 'vapid_private_key', 'encrypted' => true],
+                ['value' => $vapid['privateKey']]
+            );
+
+            return true;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 }

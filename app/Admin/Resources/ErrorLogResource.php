@@ -4,7 +4,6 @@ namespace App\Admin\Resources;
 
 use App\Admin\Resources\ErrorLogResource\Pages\ListErrorLogs;
 use App\Models\DebugLog;
-use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
@@ -13,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class ErrorLogResource extends Resource
 {
@@ -58,9 +58,7 @@ class ErrorLogResource extends Resource
                 ViewAction::make(),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                DeleteBulkAction::make(),
             ])
             ->defaultSort('created_at', 'desc');
     }
@@ -101,5 +99,10 @@ class ErrorLogResource extends Resource
         return [
             'index' => ListErrorLogs::route('/'),
         ];
+    }
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()->hasPermission('admin.debug_logs.view');
     }
 }

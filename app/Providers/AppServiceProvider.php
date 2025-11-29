@@ -6,7 +6,6 @@ use App\Classes\Synths\PriceSynth;
 use App\Helpers\ExtensionHelper;
 use App\Models\EmailLog;
 use App\Models\Extension;
-use App\Models\Invoice;
 use App\Models\OauthClient;
 use App\Models\User;
 use App\Support\Passport\ScopeRegistry;
@@ -15,6 +14,7 @@ use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Exception;
+use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -92,10 +92,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Request::macro('livewireUrl', function () {
-            if (request()->route()->named('paymenter.livewire.update')) {
+            // Somehow people manage to have no route
+            $route = request()->route();
+
+            if ($route && $route->named('paymenter.livewire.update')) {
                 $previousUrl = url()->previous();
 
-                return $previousUrl !== null ? $previousUrl : null;
+                return $previousUrl !== null ? $previousUrl : request()->fullUrl();
             }
 
             return request()->fullUrl();
@@ -118,6 +121,11 @@ class AppServiceProvider extends ServiceProvider
 
             return request()->route()->getName();
         });
+
+        $this->app->singleton(Handler::class, function ($app) {
+            return new \App\Exceptions\ErrorHandler($app);
+        });
+
     }
 
     /**
@@ -181,12 +189,6 @@ class AppServiceProvider extends ServiceProvider
         Passport::clientModel(OauthClient::class);
         Passport::ignoreRoutes();
         Passport::tokensCan(ScopeRegistry::getAll());
-
-        Route::bind('invoice', function ($val) {
-            return Invoice::where('id', $val)
-                ->orWhere('number', $val)
-                ->firstOrFail();
-        });
 
         if (class_exists(Scramble::class)) {
             Scramble::configure()

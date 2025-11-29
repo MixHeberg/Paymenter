@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class HttpLogResource extends Resource
 {
@@ -44,11 +45,13 @@ class HttpLogResource extends Resource
                     ->state(function (DebugLog $record) {
                         return $record->context['url'] ?? null;
                     })
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('context->url', 'like', "%{$search}%"))
                     ->toggleable(),
                 TextColumn::make('status')
                     ->state(function (DebugLog $record) {
                         return $record->context['response_status'] ?? null;
                     })
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where('context->response_status', 'like', "%{$search}%"))
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->searchable()
@@ -125,5 +128,10 @@ class HttpLogResource extends Resource
         return [
             'index' => ListHttpLogs::route('/'),
         ];
+    }
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()->hasPermission('admin.debug_logs.view');
     }
 }

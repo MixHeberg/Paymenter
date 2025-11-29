@@ -84,20 +84,4 @@ class Extension
      * @return void
      */
     public function boot() {}
-
-    /**
-     * Called when the extension is enabled
-     * If the extension type is server or gateway, it will be called every time a server or gateway is created
-     *
-     * @return void
-     */
-    public function enabled() {}
-
-    /**
-     * Called when the extension is disabled
-     * If the extension type is server or gateway, it will be called every time a server or gateway is deleted
-     *
-     * @return void
-     */
-    public function disabled() {}
 }

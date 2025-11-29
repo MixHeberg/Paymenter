@@ -44,7 +44,7 @@ return [
         'active' => 'Aktif',
         'cancelled' => 'Dibatalkan',
         'suspended' => 'Ditangguhkan',
-        'cancellation_pending' => 'Cancellation Pending',
+        'cancellation_pending' => 'Pembatalan Tertunda',
     ],
     'billing_cycles' => [
         'day' => 'hari|hari',
@@ -54,6 +54,16 @@ return [
     ],
     'every_period' => 'Setiap :period :unit',
     'price_every_period' => ':price per :period :unit',
-    'price_one_time' => ':price one time',
+    'price_one_time' => ':price sekali',
     'expires_at' => 'Berakhir pada',
+    'auto_pay' => 'Pembayaran otomatis menggunakan',
+    'auto_pay_not_configured' => 'Belum dikonfigurasi',
+
+    'no_services' => 'Tidak ada layanan yang ditemukan',
+    'update_billing_agreement' => 'Perbarui Perjanjian Penagihan',
+    'clear_billing_agreement' => 'Hapus Perjanjian Penagihan',
+    'select_billing_agreement' => 'Pilih Perjanjian Penagihan',
+
+    'remove_payment_method' => 'Hapus Metode Pembayaran',
+    'remove_payment_method_confirm' => 'Apakah Anda yakin ingin menghapus metode pembayaran ":name" dari layanan ini? Layanan Anda tidak akan lagi dapat membayar faktur secara otomatis.',
 ];

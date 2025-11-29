@@ -4,22 +4,28 @@ namespace App\Helpers;
 
 use App\Attributes\ExtensionMeta;
 use App\Classes\FilamentInput;
+use App\Enums\InvoiceTransactionStatus;
+use App\Models\BillingAgreement;
 use App\Models\Extension;
 use App\Models\Gateway;
 use App\Models\Invoice;
+use App\Models\InvoiceTransaction;
 use App\Models\Product;
 use App\Models\Server;
 use App\Models\Service;
+use App\Models\User;
 use Exception;
 use Filament\Forms\Components\Placeholder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use OwenIt\Auditing\Events\AuditCustom;
 use ReflectionClass;
 
 class ExtensionHelper
@@ -162,14 +168,10 @@ class ExtensionHelper
             if (!file_exists($path) || !class_exists($class)) {
                 continue;
             }
-
-            $reflection = new ReflectionClass($class);
-            $attributes = $reflection->getAttributes(ExtensionMeta::class);
-
             $extensions[] = [
                 'name' => $name,
                 'type' => $type,
-                'meta' => $attributes ? $attributes[0]->newInstance() : null,
+                'meta' => self::getMeta($class),
             ];
         }
 
@@ -190,19 +192,25 @@ class ExtensionHelper
 
                 // Check if the class exists
                 if (class_exists('\\Paymenter\\Extensions\\' . ucfirst($type) . 's\\' . $name . '\\' . $name)) {
-                    $reflection = new ReflectionClass('\\Paymenter\\Extensions\\' . ucfirst($type) . 's\\' . $name . '\\' . $name);
-                    $attributes = $reflection->getAttributes(ExtensionMeta::class);
 
                     $extensions[] = [
                         'name' => $name,
                         'type' => $type,
-                        'meta' => $attributes ? $attributes[0]->newInstance() : null,
+                        'meta' => self::getMeta('\\Paymenter\\Extensions\\' . ucfirst($type) . 's\\' . $name . '\\' . $name),
                     ];
                 }
             }
         }
 
         return $extensions;
+    }
+
+    public static function getMeta($class)
+    {
+        $reflection = new ReflectionClass($class);
+        $attributes = $reflection->getAttributes(ExtensionMeta::class);
+
+        return $attributes ? $attributes[0]->newInstance() : null;
     }
 
     public static function getInstallableExtensions()
@@ -224,8 +232,14 @@ class ExtensionHelper
 
             return self::getExtension($extension->type, $extension->extension, $extension->settings)->$function(...$args);
         } catch (Exception $e) {
+            // If mayFail is true, just report the exception instead of throwing it
             if (!$mayFail) {
                 throw $e;
+            } else {
+                // If extension error is Not Found, don't report
+                if (\Str::doesntEndWith($e->getMessage(), 'not found')) {
+                    report($e);
+                }
             }
         }
     }
@@ -366,7 +380,7 @@ class ExtensionHelper
     {
         $gateways = [];
 
-        foreach (Gateway::all() as $gateway) {
+        foreach (Gateway::with('settings')->get() as $gateway) {
             if (self::hasFunction($gateway, 'canUseGateway')) {
                 if (self::getExtension('gateway', $gateway->extension, $gateway->settings)->canUseGateway($total, $currency, $type, $items)) {
                     $gateways[] = $gateway;
@@ -387,13 +401,71 @@ class ExtensionHelper
         return self::getExtension('gateway', $gateway->extension, $gateway->settings)->pay($invoice, $invoice->remaining);
     }
 
+    public static function charge(Gateway $gateway, Invoice $invoice, BillingAgreement $billingAgreement): bool
+    {
+        return self::getExtension('gateway', $gateway->extension, $gateway->settings)->charge($invoice, $invoice->remaining, $billingAgreement);
+    }
+
+    public static function getBillingAgreementGateways()
+    {
+        $gateways = [];
+
+        foreach (Gateway::with('settings')->get() as $gateway) {
+            if (self::hasFunction($gateway, 'supportsBillingAgreements')) {
+                if (self::getExtension('gateway', $gateway->extension, $gateway->settings)->supportsBillingAgreements()) {
+                    $gateways[] = $gateway;
+                }
+            }
+        }
+
+        return $gateways;
+    }
+
+    /**
+     * Create billing agreement
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Gateway  $gateway
+     * @return string|view
+     */
+    public static function createBillingAgreement($user, $gateway)
+    {
+        return self::getExtension('gateway', $gateway->extension, $gateway->settings)->createBillingAgreement($user);
+    }
+
+    /**
+     * Cancel billing agreement
+     *
+     * @return bool
+     */
+    public static function cancelBillingAgreement(BillingAgreement $billingAgreement)
+    {
+        return self::getExtension('gateway', $billingAgreement->gateway->extension, $billingAgreement->gateway->settings)->cancelBillingAgreement($billingAgreement);
+    }
+
+    public static function makeBillingAgreement(User $user, $gateway, $name, $externalReference, $type = null, $expiry = null)
+    {
+        $gateway = Gateway::where('extension', $gateway)->firstOrFail();
+
+        $billingAgreement = BillingAgreement::updateOrCreate([
+            'external_reference' => $externalReference,
+            'user_id' => $user->id,
+            'gateway_id' => $gateway->id,
+        ], [
+            'name' => $name,
+            'type' => $type,
+            'expiry' => $expiry,
+        ]);
+
+        return $billingAgreement;
+    }
+
     /**
      * Add payment to invoice
      *
      * @param  Invoice|int  $invoice
-     * @param  Gateway|null  $gateway
      */
-    public static function addPayment($invoice, $gateway, $amount, $fee = null, $transactionId = null)
+    public static function addPayment($invoice, $gateway, $amount, $fee = null, $transactionId = null, InvoiceTransactionStatus $status = InvoiceTransactionStatus::Succeeded, $isCreditTransaction = false)
     {
         if (isset($gateway)) {
             $gateway = Gateway::where('extension', $gateway)->first();
@@ -403,22 +475,50 @@ class ExtensionHelper
 
         if (!$transactionId) {
             $transaction = $invoice->transactions()->create([
-                'gateway_id' => $gateway ? $gateway->id : null,
+                'gateway_id' => $gateway?->id,
                 'amount' => $amount,
                 'fee' => $fee,
+                'status' => $status,
+                'is_credit_transaction' => $isCreditTransaction,
             ]);
         } else {
+            $updateData = [
+                'gateway_id' => $gateway?->id,
+                'amount' => $amount,
+                'status' => $status,
+                'is_credit_transaction' => $isCreditTransaction,
+            ];
+            if ($fee !== null) {
+                $updateData['fee'] = $fee;
+            }
+
             $transaction = $invoice->transactions()->updateOrCreate(
                 [
                     'transaction_id' => $transactionId,
                 ],
-                [
-                    'gateway_id' => $gateway ? $gateway->id : null,
-                    'amount' => $amount,
-                    'fee' => $fee,
-                ]
+                $updateData
             );
         }
+
+        return $transaction;
+    }
+
+    public static function addProcessingPayment($invoice, $gateway, $amount, $fee = null, $transactionId = null)
+    {
+        return self::addPayment($invoice, $gateway, $amount, $fee, $transactionId, InvoiceTransactionStatus::Processing);
+    }
+
+    public static function addFailedPayment($invoice, $gateway, $amount, $fee = null, $transactionId = null)
+    {
+        return self::addPayment($invoice, $gateway, $amount, $fee, $transactionId, InvoiceTransactionStatus::Failed);
+    }
+
+    public static function addPaymentFee($transactionId, $fee)
+    {
+        $transaction = InvoiceTransaction::where('transaction_id', $transactionId)->firstOrFail();
+
+        $transaction->fee = $fee;
+        $transaction->save();
 
         return $transaction;
     }
@@ -473,12 +573,25 @@ class ExtensionHelper
         return $server;
     }
 
+    protected static function recordAudit(Model $model, string $action, array $oldValues = [], array $newValues = [])
+    {
+        // Trigger audit log for server creation
+        $model->auditEvent = $action;
+        $model->isCustomEvent = true;
+        $model->auditCustomOld = $oldValues;
+        $model->auditCustomNew = $newValues;
+
+        Event::dispatch(new AuditCustom($model));
+    }
+
     /**
      * Create server
      */
     public static function createServer(Service $service)
     {
         $server = self::checkServer($service, 'createServer');
+
+        self::recordAudit($service, 'extension_action', [], ['action' => 'create_server']);
 
         return self::getExtension('server', $server->extension, $server->settings)->createServer($service, self::settingsToArray($service->product->settings), self::getServiceProperties($service));
     }
@@ -490,6 +603,8 @@ class ExtensionHelper
     {
         $server = self::checkServer($service, 'suspendServer');
 
+        self::recordAudit($service, 'extension_action', [], ['action' => 'suspend_server']);
+
         return self::getExtension('server', $server->extension, $server->settings)->suspendServer($service, self::settingsToArray($service->product->settings), self::getServiceProperties($service));
     }
 
@@ -499,6 +614,8 @@ class ExtensionHelper
     public static function unsuspendServer(Service $service)
     {
         $server = self::checkServer($service, 'unsuspendServer');
+
+        self::recordAudit($service, 'extension_action', [], ['action' => 'unsuspend_server']);
 
         return self::getExtension('server', $server->extension, $server->settings)->unsuspendServer($service, self::settingsToArray($service->product->settings), self::getServiceProperties($service));
     }
@@ -510,6 +627,8 @@ class ExtensionHelper
     {
         $server = self::checkServer($service, 'terminateServer');
 
+        self::recordAudit($service, 'extension_action', [], ['action' => 'terminate_server']);
+
         return self::getExtension('server', $server->extension, $server->settings)->terminateServer($service, self::settingsToArray($service->product->settings), self::getServiceProperties($service));
     }
 
@@ -519,6 +638,8 @@ class ExtensionHelper
     public static function upgradeServer(Service $service)
     {
         $server = self::checkServer($service, 'upgradeServer');
+
+        self::recordAudit($service, 'extension_action', [], ['action' => 'upgrade_server']);
 
         return self::getExtension('server', $server->extension, $server->settings)->upgradeServer($service, self::settingsToArray($service->product->settings), self::getServiceProperties($service));
     }
@@ -574,7 +695,7 @@ class ExtensionHelper
                     DB::table('migrations')->where('migration', $migrationName)->delete();
                 }
             } catch (Exception $e) {
-                Log::error('Failed to rollback migration: ' . $migrationName . ' - ' . $e->getMessage());
+                report($e);
             }
         }
     }
@@ -584,15 +705,14 @@ class ExtensionHelper
      */
     public static function runMigrations($path)
     {
+        $migrator = app(Migrator::class);
+
         try {
-            Artisan::call('migrate', [
-                '--path' => $path,
-                '--force' => true,
-            ]);
-            $output = Artisan::output();
-            Log::debug('Migrations output: ' . $output);
+            $ranMigrations = $migrator->run(base_path($path));
+
+            Log::debug('Migrations output: ', $ranMigrations);
         } catch (Exception $e) {
-            Log::error('Failed to run migrations for path: ' . $path . ' - ' . $e->getMessage());
+            report($e);
         }
     }
 }

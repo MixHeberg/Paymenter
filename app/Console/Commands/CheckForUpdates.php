@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Helpers\NotificationHelper;
 use App\Models\Setting;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -56,6 +57,25 @@ class CheckForUpdates extends Command
             } else {
                 $this->info('You are using the latest version: ' . config('app.version'));
             }
+        }
+
+        $setting = Setting::where('key', 'latest_version')->first();
+        $currentVersion = config('app.version');
+
+        if ($setting && $setting->value != $version['latest'] && $currentVersion != $version['latest']) {
+            // Send notification to all admins
+            $this->info('New stable version detected, sending notification to system email address.');
+
+            // Send notification to all admins
+            NotificationHelper::sendSystemEmailNotification(
+                'New stable version available',
+                <<<HTML
+                A new stable version of Paymenter is available: {$version['latest']}.<br>
+                You are currently using version: {$currentVersion}.<br>
+                
+                Please update as soon as possible.
+                HTML
+            );
         }
         Setting::updateOrCreate(
             ['key' => 'latest_version'],

@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'view' => 'Prikaži',
 
     'input' => [
         'first_name' => 'Ime',
@@ -29,8 +28,12 @@ return [
 
         'password' => 'Lozinka',
         'password_placeholder' => 'Vaša lozinka',
+
+        'password_confirmation' => 'Potvrdite lozinku',
+        'password_confirmation_placeholder' => 'Potvrdite svoju lozinku',
     ],
 
     'all_rights_reserved' => 'Sva prava zadržana.',
     'update' => 'Ažuriraj',
+    'save' => 'Sačuvaj',
 ];
