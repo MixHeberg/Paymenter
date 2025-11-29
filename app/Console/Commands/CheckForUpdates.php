@@ -48,7 +48,7 @@ class CheckForUpdates extends Command
                 $this->info('You are using the latest version: ' . config('app.commit'));
             }
         } else {
-            $version = Http::get('https://api.paymenter.org/version')->json();
+            $version = Http::get('https://assets.saurfort.fr/mixheberg/paymenter')->json();
 
             if (config('app.version') != $version['latest']) {
                 $this->info('A new version is available: ' . $version['latest']);

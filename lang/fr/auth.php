@@ -19,6 +19,7 @@ return [
 
     'sign_in' => 'Connexion',
     'sign_in_title' => 'Connectez-vous à votre compte',
+    'remember_me' => 'Se souvenir de moi',
     'or_sign_in_with' => 'Ou connectez-vous avec',
     'forgot_password' => 'Mot de passe oublié ?',
     'dont_have_account' => 'Vous n\'avez pas de compte ?',
