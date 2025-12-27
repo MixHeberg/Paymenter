@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'view' => 'Afficher',
 
     'input' => [
         'first_name' => 'Prénom',
