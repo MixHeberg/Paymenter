@@ -152,9 +152,6 @@ class CronJob extends Command
 
                         return;
                     }
-                    if (!$upgrade->invoice) {
-                        return;
-                    }
 
                     $upgrade->invoice->items()->update([
                         'price' => $upgrade->calculatePrice()->price,
