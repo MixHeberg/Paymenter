@@ -35,7 +35,7 @@ return [
         'two_factor_code_placeholder' => 'Dein Zwei-Faktor-Authentifizierungscode',
 
         'currency' => 'Währung',
-        'amount' => 'Betrag',
+        'amount' => 'Anzahl',
         'payment_gateway' => 'Zahlungs-Gateway',
     ],
 
@@ -72,7 +72,7 @@ return [
     'remove' => 'Entfernen',
     'remove_payment_method' => 'Zahlungsmethode entfernen',
     'remove_payment_method_confirm' => 'Sind Sie sicher, dass Sie :name entfernen wollen? Diese Aktion kann nicht rückgängig gemacht werden.',
-    'expires' => 'Gültig bis :date',
+    'expires' => 'Expires :date',
     'cancel' => 'Abbrechen',
     'confirm' => 'Ja, entfernen',
     'email_notifications' => 'E-Mail-Benachrichtigungen',

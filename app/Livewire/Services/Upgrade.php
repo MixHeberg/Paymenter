@@ -32,7 +32,7 @@ class Upgrade extends Component
         $this->authorize('view', $this->service);
 
         if (!$this->service->upgradable) {
-            $this->notify('This service is not upgradable.', 'error', true);
+            $this->notify('This service is not upgradable.', 'error');
 
             return $this->redirect(route('services.show', $this->service), true);
         }
@@ -40,7 +40,7 @@ class Upgrade extends Component
         $this->upgrade = $this->service->product->id;
         $this->totalToday();
 
-        // We only have upgradable config options if the product has any
+        // We only have upgrabble config options if the product has any
         if ($this->service->productUpgrades()->count() === 0) {
             $this->nextStep();
         }

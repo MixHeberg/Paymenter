@@ -19,6 +19,7 @@ return [
 
     'sign_in' => 'Sign in',
     'sign_in_title' => 'Sign in to your account',
+    'remember_me' => 'Remember Me',
     'or_sign_in_with' => 'Or sign in with',
     'forgot_password' => 'Forgot your password?',
     'dont_have_account' => 'Don\'t have an account?',
