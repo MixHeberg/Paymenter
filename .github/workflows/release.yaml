@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+  release:
+    types:
+      - published
 
 jobs:
   release:
@@ -31,14 +34,22 @@ jobs:
 
       - name: Create release branch and bump version
         env:
-          REF: ${{ github.ref }}
+          # If triggered by release event, github.event.release.tag_name contient le tag (ex "v1.2.3").
+          # Sinon on récupère github.ref (ex "refs/tags/v1.2.3").
+          REF: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
         run: |
-          BRANCH=release/${REF:10}
+          # Normalize: remove possible refs/tags/ prefix to get tag like v1.2.3
+          if [[ "$REF" == refs/tags/* ]]; then
+            TAG=${REF#refs/tags/}
+          else
+            TAG=$REF
+          fi
+          BRANCH=release/${TAG}
           git config --local user.email "ci@mixheberg.fr"
           git config --local user.name "Paymenter CI"
           git checkout -b $BRANCH
           git push -u origin $BRANCH
-          sed -i "s/    'version' => 'development',/    'version' => '${REF:11}',/" config/app.php
+          sed -i "s/    'version' => 'development',/    'version' => '${TAG}',/" config/app.php
           git add config/app.php composer.json
           git commit -m "ci(release): bump version"
           git push
