@@ -140,7 +140,6 @@ class ServiceUpgrade extends Model implements Auditable
 
     public function getMaxRefundAmount(): float
     {
-        // We don't refund if service has no due date (one-time or free plans)
         if (!$this->service->expires_at) {
             return 0;
         }

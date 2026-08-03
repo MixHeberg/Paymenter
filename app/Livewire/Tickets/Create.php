@@ -41,14 +41,13 @@ class Create extends Component
             'attachments.*' => 'file|max:10240',
         ]);
 
-        $rateLimitKey = 'create-ticket:' . Auth::id();
-        if (RateLimiter::tooManyAttempts($rateLimitKey, 1)) {
-            $this->notify('Too many ticket creation attempts. Please try again in 30 seconds.', 'error');
+        if (RateLimiter::tooManyAttempts('create-ticket', 1)) {
+            $this->notify('Too many ticket creation attempts. Please try again in 60 seconds.', 'error');
 
             return;
         }
 
-        RateLimiter::increment($rateLimitKey, 30);
+        RateLimiter::increment('create-ticket', 30);
 
         $ticket = Ticket::create([
             'user_id' => Auth::id(),

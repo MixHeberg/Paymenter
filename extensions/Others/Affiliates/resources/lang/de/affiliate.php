@@ -2,7 +2,7 @@
 
 return [
     'affiliate' => 'Partner',
-    'signup-for-affiliate' => 'Registrieren für Affiliate',
+    'signup-for-affiliate' => '',
     'code' => 'Code',
     'visitors' => 'Besucher',
     'total-visitors' => 'Besucher insgesamt',
