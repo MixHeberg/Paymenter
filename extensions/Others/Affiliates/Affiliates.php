@@ -62,6 +62,14 @@ class Affiliates extends Extension
                     'custom' => 'Custom',
                 ],
             ],
+            [
+                'name' => 'can_register',
+                'label' => 'Can register?',
+                'type' => 'checkbox',
+                'default' => false,
+                'description' => 'Block users to register new code.',
+                'validation' => 'boolean',
+            ],
         ];
     }
 

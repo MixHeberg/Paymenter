@@ -2,6 +2,12 @@
     <x-navigation.breadcrumb />
     <div class="px-2">
 
+        @php
+            if (!isset($affiliate)) {
+                back();
+            }
+        @endphp
+
         @isset($affiliate)
             <div class="mt-4 md:grid-cols-3 grid gap-4">
                 <div class="flex flex-col gap-1 bg-background-secondary p-4 rounded-lg">
@@ -53,20 +59,6 @@
                     document.body.removeChild(temp)
                 }
             </script>
-        @else
-            <p class="mb-4">{{ __('affiliates::affiliate.you-havent-signed-up-yet') }}</p>
-            <h3 class="text-lg font-bold mb-4">{{ __('affiliates::affiliate.signup-for-affiliate') }}</h3>
-            <form wire:submit.prevent="signup" method="POST">
-
-                @if ($signup_type === 'custom')
-                    <x-form.input name="referral_code" type="text" :label="__('affiliates::affiliate.code')" wire:model="referral_code"
-                        required />
-                @endif
-
-                <x-button.primary type="submit" class="text-sm !w-fit mt-4">
-                    {{ __('auth.sign_up') }}
-                </x-button.primary>
-            </form>
         @endisset
     </div>
 
